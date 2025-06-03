@@ -12,10 +12,16 @@ const app = document.querySelector<HTMLDivElement>('#app')!
 const modelNameDiv = createDiv('model-name')
 
 const displayDiv = createDiv('display')
-const displayReferencesDiv = createDiv('display-references')
 const displayScreenDiv = createDiv('display-screen')
 
+const screenCalculationsDiv = createDiv('screen-calculations')
 const screenBasesDiv = createDiv('screen-bases')
+
+const screenCalculationsSecondaryDiv = createDiv('screen-calculations-secondary')
+const screenCalculationsResultDiv = createDiv('screen-calculations-result')
+
+const screenBasesReferencesDiv = createDiv('screen-bases-references')
+const screenBasesResultsDiv = createDiv('screen-bases-results')
 const screenBasesCursorDiv = createDiv('screen-bases-cursor')
 
 const screenHexDiv = createDiv('screen-hex')
@@ -37,16 +43,22 @@ app.append(displayDiv)
 app.append(basesDiv)
 app.append(symbolsDiv)
 
-displayDiv.append(displayReferencesDiv)
 displayDiv.append(displayScreenDiv)
 
+displayScreenDiv.append(screenCalculationsDiv)
 displayScreenDiv.append(screenBasesDiv)
-displayScreenDiv.append(screenBasesCursorDiv)
 
-screenBasesDiv.append(screenHexDiv)
-screenBasesDiv.append(screenDecDiv)
-screenBasesDiv.append(screenOctDiv)
-screenBasesDiv.append(screenBinDiv)
+screenCalculationsDiv.append(screenCalculationsSecondaryDiv)
+screenCalculationsDiv.append(screenCalculationsResultDiv)
+
+screenBasesDiv.append(screenBasesReferencesDiv)
+screenBasesDiv.append(screenBasesResultsDiv)
+screenBasesDiv.append(screenBasesCursorDiv)
+
+screenBasesResultsDiv.append(screenHexDiv)
+screenBasesResultsDiv.append(screenDecDiv)
+screenBasesResultsDiv.append(screenOctDiv)
+screenBasesResultsDiv.append(screenBinDiv)
 
 basesDiv.append(baseHexButton)
 basesDiv.append(baseDecButton)
@@ -69,7 +81,10 @@ for (let symbol of symbols.flat()) {
 /* Estrutura -> Add. Informações */
 modelNameDiv.textContent = 'OCTA-CALC-BR01'
 
-displayReferencesDiv.innerHTML = `
+screenCalculationsSecondaryDiv.innerHTML = '0'
+screenCalculationsResultDiv.innerHTML = '0'
+
+screenBasesReferencesDiv.innerHTML = `
   <div>HEX</div>
   <div>DEC</div>
   <div>OCT</div>
@@ -108,10 +123,12 @@ const clearLastDigit = (key: string, baseSelected: HTMLDivElement) => {
 
   if (baseSelected.textContent!.length === 1) {
     baseSelected.textContent = '0'
+    screenCalculationsResultDiv.textContent = baseSelected.textContent
   }
 
   if (baseSelected.textContent !== '0') {
     baseSelected.textContent = baseSelected.textContent!.slice(0, -1)
+    screenCalculationsResultDiv.textContent = baseSelected.textContent
   }
 }
 
@@ -119,6 +136,9 @@ const clearAll = (key: string, fillWithZeros: boolean = true) => {
   if (key !== 'Clear') return
 
   const value = fillWithZeros ? '0' : ''
+
+  screenCalculationsSecondaryDiv.textContent = value
+  screenCalculationsResultDiv.textContent = value
 
   screenHexDiv.textContent = value
   screenDecDiv.textContent = value
@@ -129,7 +149,7 @@ const clearAll = (key: string, fillWithZeros: boolean = true) => {
 const setKeysLayout = (base: string = 'dec') => {
   const buttons = app.querySelectorAll('button')
 
-  let keysToDisable = new Set(['<<', '>>', '(', ')', '%', '±', ',', '÷', 'x', '-', '+', '='])
+  let keysToDisable = new Set(['<<', '>>', '(', ')', '%', '±', ','])
 
   if (base !== 'hex') ['A', 'B', 'C', 'D', 'E', 'F'].forEach(keysToDisable.add, keysToDisable)
   if (base === 'bin') ['2', '3', '4', '5', '6', '7', '8', '9'].forEach(keysToDisable.add, keysToDisable)
@@ -156,6 +176,14 @@ const isLetter = (key: string) => {
   return /^[A-F]$/.test(key)
 }
 
+const isOperation = (key: string) => {
+  return ['÷', 'x', '-', '+'].includes(key)
+}
+
+const isCalc = (key: string) => {
+  return key === '='
+}
+
 const isHexa = (base: string, key: string) => {
   return base === 'hex' && (isLetter(key) || isNumber(key))
 }
@@ -173,14 +201,54 @@ const isBinary = (base: string, key: string) => {
 }
 
 const writeScreen = (key: string, baseSelected: HTMLDivElement, base: string = 'dec') => {
+  if (isOperation(key) && screenCalculationsResultDiv.textContent !== '0') {
+    let expression = screenCalculationsSecondaryDiv.textContent
+
+    screenCalculationsSecondaryDiv.textContent = `
+      ${expression === '0' ? '' : expression}
+      ${screenCalculationsResultDiv.textContent} ${key}
+    `
+
+    screenCalculationsResultDiv.textContent = '0'
+    screenHexDiv.textContent = '0'
+    screenDecDiv.textContent = '0'
+    screenOctDiv.textContent = '0'
+    screenBinDiv.textContent = '0'
+
+    return
+  }
+
+  if (isCalc(key) && screenCalculationsSecondaryDiv.textContent !== '0') {
+    let expression = `
+      ${screenCalculationsSecondaryDiv.textContent}
+      ${screenCalculationsResultDiv.textContent}
+    `
+
+    expression = expression.replace('÷', '/').replace('x', '*')
+
+    // ! TO DO: eval to hex, oct, bin
+    const result = eval(expression)
+
+    screenCalculationsSecondaryDiv.textContent = '0'
+    screenCalculationsResultDiv.textContent = result
+    screenHexDiv.textContent = result
+    screenDecDiv.textContent = result
+    screenOctDiv.textContent = result
+    screenBinDiv.textContent = result
+
+    return
+  }
+
   if (isHexa(base, key) || isDecimal(base, key) || isOctal(base, key) || isBinary(base, key)) {
     if (baseSelected.textContent === '0') {
       baseSelected.textContent = key
+      screenCalculationsResultDiv.textContent = key
       return
     }
 
-    if (baseSelected.textContent!.length <= 18) {
+    if (baseSelected.textContent!.length < 12) {
       baseSelected.textContent += key
+      screenCalculationsResultDiv.textContent += key
     }
   }
 }
@@ -195,6 +263,7 @@ const changeBase = (key: string) => {
     baseSelected = basesDict[key][0]
     baseSelected.classList.add('active')
     screenBaseSelected = basesDict[key][1]
+    screenCalculationsResultDiv.textContent = screenBaseSelected.textContent
     setKeysLayout(baseSelected.textContent!)
   }
 }

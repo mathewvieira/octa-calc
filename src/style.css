@@ -20,7 +20,7 @@
 
 * {
   scrollbar-width: auto;
-  scrollbar-color: #ffffff #97AB46;
+  scrollbar-color: rgba(0, 0, 0, 0.3) #97AB46;
 }
 
 *::-webkit-scrollbar {
@@ -32,7 +32,7 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.3);
   border-radius: 10px;
   border: 3px solid #97AB46;
 }
@@ -58,7 +58,7 @@ body {
 
 #app {
   box-shadow: 8.5px 8.5px 0px 1px rgba(11, 11, 11, 0.8);
-  width: 420px;
+  width: 365px;
   padding: 25px 40px 40px;
   background-color: #1b1b1b;
   border: 2.5px solid rgb(71, 71, 71);
@@ -92,33 +92,61 @@ body {
   margin-bottom: 15px;
 }
 
-#display-references {
-  display: flex;
-  flex-direction: column;
-  row-gap: 2px;
-  width: 10%;
-  font-size: 15px;
-  font-family: monospace;
-}
-
 #display-screen {
-  display: flex;
-  width: 90%;
-  padding: 4px;
+  width: 100%;
+  padding: 4px 4px 4px 6px;
   background-color: #97AB46;
   border: 10px solid #b5b5b5;
   border-style: outset;
   border-radius: 8px;
   font-size: 22px;
   font-family: 'DSEG14-Classic-MINI', serif;
-  color: #1e1e1e;
+  color: hsl(0, 0%, 12%);
   text-align: end;
+  overflow-x: hidden;
+}
+
+#screen-calculations {
+  flex-direction: column;
+  width: 95%;
+  border-bottom: 1px solid;
+  font-size: 26px;
   overflow-x: scroll;
-  overflow-y: hidden;
+  margin-bottom: 1rem;
+}
+
+#screen-calculations-result {
+  font-size: 32px;
 }
 
 #screen-bases {
-  width: 95%;
+  display: flex;
+  justify-content: end;
+  width: 100%;
+}
+
+#screen-bases-references {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 5%;
+  font-size: 15px;
+  font-family: monospace;
+}
+
+#screen-bases-references div {
+  height: 33.5px;
+}
+
+#screen-bases-results {
+  width: 90%;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  margin-left: 12.5px;
+}
+
+#screen-bases-results>* {
+  border-bottom: 1px dotted;
 }
 
 #screen-bases-cursor {
@@ -136,13 +164,13 @@ body {
 }
 
 button {
-  padding: 0.5em 1.2em;
+  padding: 0.4em 1.2em;
   background-color: #636363;
   cursor: pointer;
   border: 2px solid rgb(174, 174, 174);
   border-style: outset;
   border-radius: 8px;
-  font-size: 1em;
+  font-size: 14px;
   font-family: inherit;
   font-weight: 500;
 }
