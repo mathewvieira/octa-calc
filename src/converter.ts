@@ -35,7 +35,7 @@ class BaseConverter {
   }
 }
 
-interface ConversionResult {
+export interface ConversionResult {
   dec: string
   hex: string
   oct: string

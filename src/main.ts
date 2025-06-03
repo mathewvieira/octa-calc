@@ -1,7 +1,7 @@
 import './style.css'
 
 import { type BasesDict } from './helpers.ts'
-import { type NumberBaseName } from './converter.ts'
+import { type ConversionResult, type NumberBaseName } from './converter.ts'
 
 import { createButton, createDiv } from './helpers.ts'
 import { convertToAllBases } from './converter.ts'
@@ -78,33 +78,6 @@ for (let symbol of symbols.flat()) {
   symbolsDiv.append(createButton(symbol))
 }
 
-/* Estrutura -> Add. Informações */
-modelNameDiv.textContent = 'OCTA-CALC-BR01'
-
-screenCalculationsSecondaryDiv.innerHTML = '0'
-screenCalculationsResultDiv.innerHTML = '0'
-
-screenBasesReferencesDiv.innerHTML = `
-  <div>HEX</div>
-  <div>DEC</div>
-  <div>OCT</div>
-  <div>BIN</div>
-`
-
-screenHexDiv.textContent = '0'
-screenDecDiv.textContent = '0'
-screenOctDiv.textContent = '0'
-screenBinDiv.textContent = '0'
-
-screenBasesCursorDiv.innerHTML = `
-  <br />
-  < <br />
-  <br />
-  <br />
-`
-
-baseDecButton.classList.add('active')
-
 /* Estrutura -> Helpers */
 let screenBaseSelected = screenDecDiv
 let baseSelected = baseDecButton
@@ -132,18 +105,12 @@ const clearLastDigit = (key: string, baseSelected: HTMLDivElement) => {
   }
 }
 
-const clearAll = (key: string, fillWithZeros: boolean = true) => {
+const clearAll = (key: string) => {
   if (key !== 'Clear') return
 
-  const value = fillWithZeros ? '0' : ''
-
-  screenCalculationsSecondaryDiv.textContent = value
-  screenCalculationsResultDiv.textContent = value
-
-  screenHexDiv.textContent = value
-  screenDecDiv.textContent = value
-  screenOctDiv.textContent = value
-  screenBinDiv.textContent = value
+  screenCalculationsSecondaryDiv.innerHTML = '&nbsp;'
+  screenCalculationsResultDiv.innerHTML = '0'
+  resetScreenBases()
 }
 
 const setKeysLayout = (base: string = 'dec') => {
@@ -164,43 +131,77 @@ const isButton = (target: HTMLElement) => {
   return target && target.tagName === 'BUTTON'
 }
 
-const isBase = (key: string) => {
-  return basesNames.includes(key)
+const isBase = (value: string) => {
+  return basesNames.includes(value)
 }
 
-const isNumber = (key: string) => {
-  return /^\d$/.test(key)
+const isNumber = (value: string) => {
+  return /^\d+$/.test(value)
 }
 
-const isLetter = (key: string) => {
-  return /^[A-F]$/.test(key)
+const isLetter = (value: string) => {
+  return /^[A-F]+$/.test(value)
 }
 
-const isOperation = (key: string) => {
-  return ['÷', 'x', '-', '+'].includes(key)
+const isOperation = (value: string) => {
+  return ['÷', 'x', '-', '+'].includes(value)
 }
 
-const isCalc = (key: string) => {
-  return key === '='
+const isCalc = (value: string) => {
+  return value === '='
 }
 
-const isHexa = (base: string, key: string) => {
-  return base === 'hex' && (isLetter(key) || isNumber(key))
+const isHexa = (value: string, base: string = 'hex') => {
+  return base === 'hex' && (isLetter(value) || isNumber(value))
 }
 
-const isDecimal = (base: string, key: string) => {
-  return base === 'dec' && isNumber(key)
+const isDecimal = (value: string, base: string = 'dec') => {
+  return base === 'dec' && isNumber(value)
 }
 
-const isOctal = (base: string, key: string) => {
-  return base === 'oct' && /^[0-7]$/.test(key)
+const isOctal = (value: string, base: string = 'oct') => {
+  return base === 'oct' && /^[0-7]+$/.test(value)
 }
 
-const isBinary = (base: string, key: string) => {
-  return base === 'bin' && /^[0-1]$/.test(key)
+const isBinary = (value: string, base: string = 'bin') => {
+  return base === 'bin' && /^[01]+$/.test(value)
 }
 
-const writeScreen = (key: string, baseSelected: HTMLDivElement, base: string = 'dec') => {
+function convertToDecimal(numStr: string) {
+  return parseInt(numStr.trim().toUpperCase(), 10)
+}
+
+const getRightResultBase = (bases: ConversionResult, selectedBase: string) => {
+  if (selectedBase === 'hex') {
+    return bases.hex
+  }
+
+  if (selectedBase === 'oct') {
+    return bases.oct
+  }
+
+  if (selectedBase === 'bin') {
+    return bases.bin
+  }
+
+  return bases.dec
+}
+
+const fillScreenBases = (bases: ConversionResult) => {
+  screenHexDiv.innerHTML = bases.hex
+  screenDecDiv.innerHTML = bases.dec
+  screenOctDiv.innerHTML = bases.oct
+  screenBinDiv.innerHTML = bases.bin
+}
+
+const resetScreenBases = () => {
+  screenHexDiv.innerHTML = '0'
+  screenDecDiv.innerHTML = '0'
+  screenOctDiv.innerHTML = '0'
+  screenBinDiv.innerHTML = '0'
+}
+
+const writeScreen = (key: string, screenValue: HTMLDivElement, base: string = 'dec') => {
   if (isOperation(key) && screenCalculationsResultDiv.textContent !== '0') {
     let expression = screenCalculationsSecondaryDiv.textContent
 
@@ -210,44 +211,41 @@ const writeScreen = (key: string, baseSelected: HTMLDivElement, base: string = '
     `
 
     screenCalculationsResultDiv.textContent = '0'
-    screenHexDiv.textContent = '0'
-    screenDecDiv.textContent = '0'
-    screenOctDiv.textContent = '0'
-    screenBinDiv.textContent = '0'
+    resetScreenBases()
 
     return
   }
 
-  if (isCalc(key) && screenCalculationsSecondaryDiv.textContent !== '0') {
+  if (isCalc(key) && !['0', '&nbsp;'].includes(screenCalculationsSecondaryDiv.textContent!)) {
     let expression = `
       ${screenCalculationsSecondaryDiv.textContent}
       ${screenCalculationsResultDiv.textContent}
     `
 
-    expression = expression.replace('÷', '/').replace('x', '*')
+    expression = expression.replace('÷', '/').replace('x', '*').trim()
 
-    // ! TO DO: eval to hex, oct, bin
-    const result = eval(expression)
+    expression = expression.replace(/[0-9A-F]+/gi, (match) => {
+      return convertToDecimal(match).toString()
+    })
 
-    screenCalculationsSecondaryDiv.textContent = '0'
-    screenCalculationsResultDiv.textContent = result
-    screenHexDiv.textContent = result
-    screenDecDiv.textContent = result
-    screenOctDiv.textContent = result
-    screenBinDiv.textContent = result
+    const bases = convertToAllBases(eval(expression), 'dec')
+
+    screenCalculationsSecondaryDiv.innerHTML = '&nbsp;'
+    screenCalculationsResultDiv.textContent = getRightResultBase(bases, baseSelected.textContent!)
+    fillScreenBases(bases)
 
     return
   }
 
-  if (isHexa(base, key) || isDecimal(base, key) || isOctal(base, key) || isBinary(base, key)) {
-    if (baseSelected.textContent === '0') {
-      baseSelected.textContent = key
+  if (isHexa(key, base) || isDecimal(key, base) || isOctal(key, base) || isBinary(key, base)) {
+    if (screenValue.textContent === '0') {
+      screenValue.textContent = key
       screenCalculationsResultDiv.textContent = key
       return
     }
 
-    if (baseSelected.textContent!.length < 12) {
-      baseSelected.textContent += key
+    if (screenValue.textContent!.length < 12) {
+      screenValue.textContent += key
       screenCalculationsResultDiv.textContent += key
     }
   }
@@ -263,6 +261,7 @@ const changeBase = (key: string) => {
     baseSelected = basesDict[key][0]
     baseSelected.classList.add('active')
     screenBaseSelected = basesDict[key][1]
+    screenCalculationsSecondaryDiv.innerHTML = '&nbsp;'
     screenCalculationsResultDiv.textContent = screenBaseSelected.textContent
     setKeysLayout(baseSelected.textContent!)
   }
@@ -277,7 +276,32 @@ const changeCursorPosition = (base: string) => {
   `
 }
 
-window.onload = () => setKeysLayout('dec')
+window.onload = () => {
+  modelNameDiv.textContent = 'OCTA-CALC-BR01'
+
+  screenCalculationsSecondaryDiv.innerHTML = '&nbsp;'
+  screenCalculationsResultDiv.innerHTML = '0'
+
+  screenBasesReferencesDiv.innerHTML = `
+    <div>HEX</div>
+    <div>DEC</div>
+    <div>OCT</div>
+    <div>BIN</div>
+  `
+
+  resetScreenBases()
+
+  screenBasesCursorDiv.innerHTML = `
+  <br />
+  < <br />
+  <br />
+  <br />
+  `
+
+  baseDecButton.classList.add('active')
+
+  setKeysLayout('dec')
+}
 
 app.onclick = (e) => {
   if (!isButton(e.target as HTMLElement)) return
@@ -292,8 +316,5 @@ app.onclick = (e) => {
 
   const bases = convertToAllBases(screenBaseSelected.textContent!, baseSelected.textContent as NumberBaseName)
 
-  screenHexDiv.textContent = bases.hex
-  screenDecDiv.textContent = bases.dec
-  screenOctDiv.textContent = bases.oct
-  screenBinDiv.textContent = bases.bin
+  fillScreenBases(bases)
 }
